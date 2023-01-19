@@ -1,11 +1,14 @@
 import nmap3
+import wmi
+from enum import Enum
+
 from datetime import datetime
 from IScanner import IScanner
 
 
 class HostDiscoveryScanner(IScanner):
-    @staticmethod
-    def scan(body: dict) -> dict:
+
+    def scan(self, body: dict) -> dict:
         networks: str = body['hosts'].strip().replace(',', ' ')
 
         nmap = nmap3.Nmap()
@@ -31,3 +34,21 @@ class HostDiscoveryScanner(IScanner):
             'hosts_up': hosts_up
         }
         return result
+
+
+class Transport(Enum):
+    WMI = 0,
+    WinRM = 1
+
+
+class VulnerabilitiesScanner(IScanner):
+
+    def scan(self, body: dict) -> any:
+        transport: Transport = body['transport_type']
+        if transport == Transport.WMI:
+            try:
+                connection = wmi.WMI(body['host'], body['user_login'], body['pwd_login'])
+                res = connection.query('SELECT HotFixID FROM Win32_QuickFixEngineering')
+                print(res)
+            except Exception as e:
+                print(e)
