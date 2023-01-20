@@ -40,15 +40,20 @@ class Transport(Enum):
     WMI = 0,
     WinRM = 1
 
-
+#  TODO надо разбить на классы будет, или как-то, способы проверок в зависимости от уязвимости, ибо тут
+#   мы используем один Win32, а в другой уязвимости будет другая API
 class VulnerabilitiesScanner(IScanner):
 
+# Для обновлений
     def scan(self, body: dict) -> any:
         transport: Transport = body['transport_type']
-        if transport == Transport.WMI:
+        if transport in Transport.WMI.value:
             try:
-                connection = wmi.WMI(body['host'], body['user_login'], body['pwd_login'])
-                res = connection.query('SELECT HotFixID FROM Win32_QuickFixEngineering')
-                print(res)
+                connection = wmi.WMI(body['host'], user=body['user_login'], password=body['pwd_login'])
+                query_result = connection.Win32_QuickFixEngineering()
+                return {zip(
+                        [i for i in range(0, len(query_result))],
+                        [j.HotFixID for j in query_result]
+                    )}
             except Exception as e:
                 print(e)
