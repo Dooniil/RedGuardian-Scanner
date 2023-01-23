@@ -1,7 +1,6 @@
 import nmap3
-import wmi
-import winrm
-import paramiko
+from WindowsScans import WmiFunc, WinrmFunc
+from LinuxScans import SshFunc
 from enum import Enum
 
 from datetime import datetime
@@ -38,14 +37,13 @@ class HostDiscoveryScanner(IScanner):
         return result
 
 
-class Transport(Enum):
+class TransportWindows(Enum):
     WMI = 0,
     WinRM = 1,
-    SSH = 2
 
 
-# class TransportLinux(Enum):
-#     SSH = 0
+class TransportLinux(Enum):
+    SSH = 0
 
 
 #  TODO надо разбить на классы будет, или как-то, способы проверок в зависимости от уязвимости, ибо тут
@@ -54,34 +52,20 @@ class VulnerabilitiesScanner(IScanner):
 
     #   Для обновлений
     def scan(self, body: dict) -> any:
-        transport: int = body['transport_type']
+        user_data: dict = {
+            'user': body['user_login'],
+            'password': body['pwd_login'],
+        }
         try:
-            if transport == Transport.WMI.value:
-                connection = wmi.WMI(computer=body['host'], user=body['user_login'], password=body['pwd_login'])
-                query_result = connection.Win32_QuickFixEngineering()
-                return {zip(
-                    [i for i in range(0, len(query_result))],
-                    [j.HotFixID for j in query_result])}
-            elif transport == Transport.WinRM.value:
-                connection = winrm.Session(
-                    f'http://{body["host"]}:5985/wsman',
-                    auth=(body['user_login'], body['pwd_login']),
-                    server_cert_validation='ignore',
-                    transport='ntlm',
-                    message_encryption='auto')
-                query_result = connection.run_ps('Get-HotFix').std_out.decode('utf-8')
-                print(query_result)
-            elif transport == Transport.SSH.value:
-                connection = paramiko.SSHClient()
-                connection.load_system_host_keys()
-                connection.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                connection.connect(
-                    hostname=body['host'],
-                    username=body['user_login'],
-                    password=body['pwd_login'],
-                    port=22)
-                _, stdout, _ = connection.exec_command('ip address')
-                print(stdout.read())
-                connection.close()
+            match (body['platform'], body['transport_type']):
+                case (0, TransportWindows.WMI.value):
+                    for host in body['hosts']:
+                        res = WmiFunc.exec_command(host, user_data)
+                case (0, TransportWindows.WinRM.value):
+                    for host in body['hosts']:
+                        res = WinrmFunc.exec_command(host, user_data)
+                case (1, TransportLinux.SSH.value):
+                    for host in body['hosts']:
+                        res = SshFunc.exec_command(host, user_data)
         except Exception as e:
             print(e)
