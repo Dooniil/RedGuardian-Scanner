@@ -1,6 +1,6 @@
 import nmap3
 from WindowsScans import WmiFunc, WinrmFunc
-from LinuxScans import SshFunc
+from LinuxScans import SshFuncPassword, SshFuncKey
 from enum import Enum
 
 from datetime import datetime
@@ -37,13 +37,14 @@ class HostDiscoveryScanner(IScanner):
         return result
 
 
-class TransportWindows(Enum):
-    WMI = 0,
-    WinRM = 1,
-
-
-class TransportLinux(Enum):
-    SSH = 0
+# class TransportWindows(Enum):
+#     WMI = 0,
+#     WinRM = 1,
+#
+#
+# class TransportLinux(Enum):
+#     SSH_PASSWORD = 0,
+#     SSH_KEY = 1,
 
 
 #  TODO надо разбить на классы будет, или как-то, способы проверок в зависимости от уязвимости, ибо тут
@@ -58,14 +59,28 @@ class VulnerabilitiesScanner(IScanner):
         }
         try:
             match (body['platform'], body['transport_type']):
-                case (0, TransportWindows.WMI.value):
+                case (0, 0):
                     for host in body['hosts']:
                         res = WmiFunc.exec_command(host, user_data)
-                case (0, TransportWindows.WinRM.value):
+                        print(res)
+                case (0, 1):
                     for host in body['hosts']:
                         res = WinrmFunc.exec_command(host, user_data)
-                case (1, TransportLinux.SSH.value):
+                        print(res)
+                case (1, 0):
                     for host in body['hosts']:
-                        res = SshFunc.exec_command(host, user_data)
+                        c, res = SshFuncPassword.exec_command(host, user_data)
+                        print(res)
+                        c.close()
+                case (1, 1):
+                    access_data = {
+                        'user': user_data['user'],
+                        'p_key': body['ssh_key'],
+                        'passphrase': body['passphrase'] if body['passphrase'] else None,
+                    }
+                    for host in body['hosts']:
+                        c, res = SshFuncKey.exec_command(host, access_data)
+                        print(res)
+                        c.close()
         except Exception as e:
             print(e)
