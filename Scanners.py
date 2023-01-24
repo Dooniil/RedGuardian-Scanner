@@ -1,6 +1,6 @@
 import nmap3
 from WindowsScans import WmiFunc, WinrmFunc
-from LinuxScans import SshFuncPassword, SshFuncKey
+from LinuxScans import SshFunc
 from enum import Enum
 
 from datetime import datetime
@@ -59,27 +59,23 @@ class VulnerabilitiesScanner(IScanner):
         }
         try:
             match (body['platform'], body['transport_type']):
-                case (0, 0):
+                case (0, 0): # Windows & WMI
                     for host in body['hosts']:
                         res = WmiFunc.exec_command(host, user_data)
                         print(res)
-                case (0, 1):
+                case (0, 1): # Windows & WinRM
                     for host in body['hosts']:
                         res = WinrmFunc.exec_command(host, user_data)
                         print(res)
-                case (1, 0):
-                    for host in body['hosts']:
-                        c, res = SshFuncPassword.exec_command(host, user_data)
-                        print(res)
-                        c.close()
-                case (1, 1):
+                case (1, 0): # Linux & SSH & Password
                     access_data = {
                         'user': user_data['user'],
+                        'password': user_data['password'],
                         'p_key': body['ssh_key'],
                         'passphrase': body['passphrase'] if body['passphrase'] else None,
                     }
                     for host in body['hosts']:
-                        c, res = SshFuncKey.exec_command(host, access_data)
+                        c, res = SshFunc.exec_command(host, access_data)
                         print(res)
                         c.close()
         except Exception as e:
