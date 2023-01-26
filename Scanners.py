@@ -47,6 +47,15 @@ class HostDiscoveryScanner(IScanner):
 #     SSH_KEY = 1,
 
 
+class Vulnerability:
+    def __init__(self, id_cve: str, code_result: dict[str: dict[str: str]]):
+        self.id: str = id_cve
+        self.code_for_test: dict[str: str] = code_result
+
+vuln_test_1_code = {'(Get-Service -Name Spooler).Status': 'Running'}
+vuln_test_1 = Vulnerability('CVE-2021-34527', vuln_test_1_code)
+
+
 #  TODO надо разбить на классы будет, или как-то, способы проверок в зависимости от уязвимости, ибо тут
 #   мы используем один Win32, а в другой уязвимости будет другая API
 class VulnerabilitiesScanner(IScanner):
