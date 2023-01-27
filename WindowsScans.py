@@ -23,20 +23,19 @@ class WinrmFunc:
     @staticmethod
     def __connecting(host: str, user: str, password: str) -> winrm.Session:
         return winrm.Session(
-                                f'http://{host}:5985/wsman',
+                                f'{host}:5985',
                                 auth=(user, password),
                                 server_cert_validation='ignore',
                                 transport='ntlm',
                                 message_encryption='auto')
 
-    #  пока что только поиск обновления, потом буду разделять
     @staticmethod
     def exec_command(h: str, ud: dict, code_res: dict):
-        is_checked = True
-        connection = WinrmFunc.__connecting(h, ud['user'], ud['password'])
-        for cmd, res in code_res.items():
-            if connection.run_ps(cmd).std_out.decode('utf-8') != res:
-                is_checked = False
-                break
+        for cmd, output in code_res.items():
+            #  проверка уязвимости: коннект, команда, чек резалт, если не совпадает, значит уязвимости нет и мы выходим
+            if WinrmFunc.__connecting(h, ud['user'], ud['password'])\
+                .run_ps(cmd).std_out.decode('utf-8').strip() \
+                    != output:
+                return False
 
-        return is_checked
+        return True

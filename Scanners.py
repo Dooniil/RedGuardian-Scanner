@@ -1,8 +1,7 @@
 import nmap3
+
 from WindowsScans import WmiFunc, WinrmFunc
 from LinuxScans import SshFunc
-from enum import Enum
-
 from datetime import datetime
 from IScanner import IScanner
 
@@ -37,52 +36,39 @@ class HostDiscoveryScanner(IScanner):
         return result
 
 
-# class TransportWindows(Enum):
-#     WMI = 0,
-#     WinRM = 1,
-#
-#
-# class TransportLinux(Enum):
-#     SSH_PASSWORD = 0,
-#     SSH_KEY = 1,
-
-
 class Vulnerability:
     def __init__(self, id_cve: str, code_result: dict[str: dict[str: str]]):
         self.id: str = id_cve
         self.code_for_test: dict[str: str] = code_result
 
-vuln_test_1_code = {'(Get-Service -Name Spooler).Status': 'Running'}
-vuln_test_1 = Vulnerability('CVE-2021-34527', vuln_test_1_code)
+
+vuln_test_1 = Vulnerability('CVE-2021-34527', {'(Get-Service -Name Spooler).Status': 'Running'})
+vulns = [vuln_test_1.code_for_test]
 
 
 #  TODO надо разбить на классы будет, или как-то, способы проверок в зависимости от уязвимости, ибо тут
 #   мы используем один Win32, а в другой уязвимости будет другая API
 class VulnerabilitiesScanner(IScanner):
 
-    #   Для обновлений
     def scan(self, body: dict) -> any:
-        user_data: dict = {
+        access_data: dict = {
             'user': body['user_login'],
             'password': body['pwd_login'],
+            'p_key': body['ssh_key'],
+            'passphrase': body['passphrase'] if body['passphrase'] else None,  # проверка будет на ресте
         }
         try:
             match (body['platform'], body['transport_type']):
-                case (0, 0): # Windows & WMI
+                case (0, 0):  # Windows & WMI
                     for host in body['hosts']:
-                        res = WmiFunc.exec_command(host, user_data)
+                        res = WmiFunc.exec_command(host, access_data)
                         print(res)
-                case (0, 1): # Windows & WinRM
+                case (0, 1):  # Windows & WinRM
                     for host in body['hosts']:
-                        res = WinrmFunc.exec_command(host, user_data)
-                        print(res)
-                case (1, 0): # Linux & SSH & Password
-                    access_data = {
-                        'user': user_data['user'],
-                        'password': user_data['password'],
-                        'p_key': body['ssh_key'],
-                        'passphrase': body['passphrase'] if body['passphrase'] else None,
-                    }
+                        for vuln in vulns:
+                            res = WinrmFunc.exec_command(host, access_data, vuln)
+                            print(res)
+                case (1, 0):  # Linux & SSH & Password
                     for host in body['hosts']:
                         c, res = SshFunc.exec_command(host, access_data)
                         print(res)
