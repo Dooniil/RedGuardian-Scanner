@@ -42,15 +42,13 @@ class Vulnerability:
         self.code_for_test: dict[str: str] = code_result
 
 
-vuln_test_1 = Vulnerability('CVE-2021-34527', {'(Get-Service -Name Spooler).Status': 'Running'})
-vulns = [vuln_test_1.code_for_test]
+spooler = Vulnerability('CVE-2021-34527', {'(Get-Service -Name Spooler).Status': 'Running'})
+list_vulnerabilities = [spooler]
 
 
-#  TODO надо разбить на классы будет, или как-то, способы проверок в зависимости от уязвимости, ибо тут
-#   мы используем один Win32, а в другой уязвимости будет другая API
-class VulnerabilitiesScanner(IScanner):
+class VulnerabilitiesScanner:
 
-    def scan(self, body: dict) -> any:
+    def scan(self, host, body: dict) -> any:
         access_data: dict = {
             'user': body['user_login'],
             'password': body['pwd_login'],
@@ -60,18 +58,15 @@ class VulnerabilitiesScanner(IScanner):
         try:
             match (body['platform'], body['transport_type']):
                 case (0, 0):  # Windows & WMI
-                    for host in body['hosts']:
-                        res = WmiFunc.exec_command(host, access_data)
-                        print(res)
+                    res = WmiFunc.exec_command(host, access_data)
+                    print(res)
                 case (0, 1):  # Windows & WinRM
-                    for host in body['hosts']:
-                        for vuln in vulns:
-                            res = WinrmFunc.exec_command(host, access_data, vuln)
-                            print(res)
+                        report = WinrmFunc.exec_command(host, access_data, list_vulnerabilities)
                 case (1, 0):  # Linux & SSH & Password
-                    for host in body['hosts']:
-                        c, res = SshFunc.exec_command(host, access_data)
-                        print(res)
-                        c.close()
+                    c, res = SshFunc.exec_command(host, access_data)
+                    print(res)
+                    c.close()
         except Exception as e:
             print(e)
+        finally:
+            return report

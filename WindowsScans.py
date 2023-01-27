@@ -7,7 +7,7 @@ class WmiFunc:
     def __connecting(host: str, user: str, password: str) -> wmi.WMI:
         return wmi.WMI(computer=host, user=user, password=password)
 
-    #  пока что только поиск обновления, потом буду разделять
+
     @staticmethod
     def exec_command(h: str, ud: dict):
         res = WmiFunc.__connecting(
@@ -30,12 +30,12 @@ class WinrmFunc:
                                 message_encryption='auto')
 
     @staticmethod
-    def exec_command(h: str, ud: dict, code_res: dict):
-        for cmd, output in code_res.items():
-            #  проверка уязвимости: коннект, команда, чек резалт, если не совпадает, значит уязвимости нет и мы выходим
-            if WinrmFunc.__connecting(h, ud['user'], ud['password'])\
-                .run_ps(cmd).std_out.decode('utf-8').strip() \
-                    != output:
-                return False
-
-        return True
+    def exec_command(h: str, ud: dict, v_list: list):
+        c = WinrmFunc.__connecting(h, ud['user'], ud['password'])
+        reports = {}
+        for v in v_list:
+            for cmd, output in v.code_for_test.items():
+                if c.run_ps(cmd).std_out.decode('utf-8').strip() != output:
+                    reports[v.id] = False
+            reports[v.id] = True
+        return reports
