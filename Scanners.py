@@ -3,10 +3,9 @@ import nmap3
 from WindowsScans import WmiFunc, WinrmFunc
 from LinuxScans import SshFunc
 from datetime import datetime
-from IScanner import IScanner
 
 
-class HostDiscoveryScanner(IScanner):
+class HostDiscoveryScanner():
 
     def scan(self, body: dict) -> dict:
         networks: str = body['hosts'].strip().replace(',', ' ')
@@ -55,12 +54,10 @@ class VulnerabilitiesScanner:
             'p_key': body['ssh_key'],
             'passphrase': body['passphrase'] if body['passphrase'] else None,  # проверка будет на ресте
         }
+        report = {}
         try:
             match (body['platform'], body['transport_type']):
-                case (0, 0):  # Windows & WMI
-                    res = WmiFunc.exec_command(host, access_data)
-                    print(res)
-                case (0, 1):  # Windows & WinRM
+                case (0, 0):  # Windows & WinRM
                         report = WinrmFunc.exec_command(host, access_data, list_vulnerabilities)
                 case (1, 0):  # Linux & SSH & Password
                     c, res = SshFunc.exec_command(host, access_data)

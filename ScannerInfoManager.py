@@ -1,19 +1,17 @@
 import json
 import os
-from datetime import datetime
 
 
 class Manager:
     @staticmethod
-    def __get_path_scan_result(path_results: str) -> str:
-        file_name = datetime.now().__str__().replace(':', '-')
-        return os.sep.join([path_results, file_name]) + '.json'
+    def __get_path_scan_result(path_results: str, title: str, index: int) -> str:
+        return os.sep.join([path_results, f'{title}_{index}']) + '.json'
 
     @staticmethod
-    def write_result(path_results: str, result: dict):
+    def write_result(path_results: str, info: dict, result: dict, title: str, index):
         try:
-            with open(Manager.__get_path_scan_result(path_results), mode='w') as file:
-                json.dump(result, file, separators=(',', ':'))
+            with open(Manager.__get_path_scan_result(path_results, title, index), mode='w') as file:
+                json.dump([info, result,], file, separators=(',', ':'))
         except Exception as e:
             print(f'Error while writing results\n{e}')
         finally:

@@ -1,23 +1,23 @@
-import wmi
+# import wmi
 import winrm
 
-
-class WmiFunc:
-    @staticmethod
-    def __connecting(host: str, user: str, password: str) -> wmi.WMI:
-        return wmi.WMI(computer=host, user=user, password=password)
-
-
-    @staticmethod
-    def exec_command(h: str, ud: dict):
-        res = WmiFunc.__connecting(
-            h, ud['user'], ud['password']
-        ).Win32_QuickFixEngineering()
-        return {zip(
-            [i for i in range(0, len(res))],
-            [j.HotFixID for j in res]
-        )}
-
+#
+# class WmiFunc:
+#     @staticmethod
+#     def __connecting(host: str, user: str, password: str) -> wmi.WMI:
+#         return wmi.WMI(computer=host, user=user, password=password)
+#
+#
+#     @staticmethod
+#     def exec_command(h: str, ud: dict):
+#         res = WmiFunc.__connecting(
+#             h, ud['user'], ud['password']
+#         ).Win32_QuickFixEngineering()
+#         return {zip(
+#             [i for i in range(0, len(res))],
+#             [j.HotFixID for j in res]
+#         )}
+#
 
 class WinrmFunc:
     @staticmethod
