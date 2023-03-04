@@ -1,10 +1,26 @@
-import socket
+import asyncio
 
 
-def connect_to_controller(controller_address: str, controller_port: int):
-    scanner_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    scanner_socket.connect_ex((controller_address, controller_port))
-    return scanner_socket
+async def conn_to_controller() -> None:
+    reader, writer = await asyncio.open_connection('127.0.0.1', 8082)
 
+    writer.write(b'{"cmd":"connecting,"name_scanner":"scanner01"}')
+    await writer.drain()
 
-# def
+    while True:
+        try:
+            data = await reader.read(1536)
+
+            if data:
+                pass
+            elif not data:
+                print('Connection is closed')
+                break
+
+            print(data.decode())
+
+        finally:
+            writer.write(b'{"cmd":"closing"}')
+            await writer.drain()
+            writer.close()
+            await writer.wait_closed()
