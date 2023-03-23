@@ -1,8 +1,6 @@
 import os
-from datetime import datetime
 
-from src.connection_manage import conn_to_controller
-# from src.scan_services import Request, run_cmd
+from src.connection_manage import run_server, conn_to_controller
 from write_manage import path, write_result
 import asyncio
 
@@ -11,7 +9,9 @@ async def main():
     if not os.path.exists(path):
         os.mkdir(path)
 
-    await conn_to_controller()
+    conn_to_controller(8084)
+    await run_server(8084)
+
         # while True:
         #     request = Request(conn.recv(1536).decode())
         #     if not request:
