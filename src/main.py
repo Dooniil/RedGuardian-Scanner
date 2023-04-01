@@ -1,16 +1,17 @@
 import os
 
-from src.connection_manage import run_server, conn_to_controller
-from write_manage import path, write_result
+from connection_manage import run_server
+# from write_manage import path, write_result
 import asyncio
+
+from src.address import choose_host
 
 
 async def main():
-    if not os.path.exists(path):
-        os.mkdir(path)
-
-    conn_to_controller(8084)
-    await run_server(8084)
+    # if not os.path.exists(path):
+    #     os.mkdir(path)
+    host = choose_host()
+    await run_server(host)
 
         # while True:
         #     request = Request(conn.recv(1536).decode())
