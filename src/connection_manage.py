@@ -1,7 +1,5 @@
 import asyncio
 import json
-import socket
-import os
 from encryption_manager import encryption_manager
 #
 # HOST = os.environ['HOST']
@@ -9,16 +7,6 @@ from encryption_manager import encryption_manager
 # CONTROLLER_HOST = os.environ['CONTROLLER_HOST']
 # CONTROLLER_PORT = os.environ['CONTROLLER_PORT']
 # NAME = os.environ['NAME']
-
-
-# def conn_to_controller() -> None:
-#     socket_ = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#     socket_.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-#     socket_.bind((HOST, int(PORT)))
-#     with socket_ as connection:
-#         connection.connect((CONTROLLER_HOST, int(CONTROLLER_PORT)))
-#         connection.send(b'{"cmd":"connecting","name_scanner":"scanner02"}')
-#         connection.close()
 
 
 async def read_request(reader) -> str:
