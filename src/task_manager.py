@@ -1,68 +1,84 @@
 import json
 import os
-import threading
+
 import aiofiles
+import aiofiles.os
 import asyncio
-from src.executors.HD import HostDiscovery
+from src.handlers.host_discovery_handler import HostDiscoveryHandler
+from src.write_manager import WriteManager
+from src.sender_messages import SenderMsg
+from request_type import RequestType
+from src.time_info_manager import TimeInfoManager
 
 
 class TaskManager:
-    queue = asyncio.Queue()
-    request_path = os.sep.join([os.getcwd(), 'temp', 'requests'])
-    tasks = []
+    tasks_path = os.sep.join([os.getcwd(), 'tasks'])
+    # result_path = os.sep.join([os.getcwd(), 'results'])
+
+    # @staticmethod
+    # async def fill_tasks():
+    #     for file in os.listdir(os.path.join(TaskManager.tasks_path)):
+    #         if os.path.isfile(os.path.join(TaskManager.tasks_path, file)):
+    #             async with aiofiles.open(os.path.join(TaskManager.tasks_path, file), mode='r') as handle:
+    #                 data = await handle.read()
+    #                 task = json.loads(data)
+    #                 await TaskManager.tasks.put(task)
 
     @staticmethod
-    async def fill_queue():
-        for file in os.listdir(os.path.join(TaskManager.request_path)):
-            if os.path.isfile(os.path.join(TaskManager.request_path, file)):
-                async with aiofiles.open(os.path.join(TaskManager.request_path, file), mode='r') as handle:
-                    data = await handle.read()
-                    task = asyncio.create_task(TaskManager.run_task(json.loads(data)))
-                    await TaskManager.queue.put(task)
+    async def write_task(data: dict, run_after_writing: bool):
+        id_task = data.get('task_id')
+        name_file = os.sep.join([os.getcwd(), 'tasks', f'{id_task}.json'])
+
+        async with aiofiles.open(name_file, mode='w+') as write_handle:
+            await write_handle.write(json.dumps(data))
+
+        if run_after_writing:
+            execute_task = asyncio.create_task(TaskManager.run_task(id_task, data, False))
+            await execute_task
+            # TaskManager.execute_tasks.add(execute_task)
+            # execute_task.add_done_callback(TaskManager.execute_tasks.discard)
 
     @staticmethod
-    async def write_req_to_tmp(data: dict):
-        id_task = data.get("task_id")
-        name_file = os.sep.join([os.getcwd(), 'temp', 'requests', f'{id_task}.json'])
+    async def run_task(task_id: int, task_data: dict = None, is_need_read: bool = True):
+        time_manager = TimeInfoManager()
+        time_manager.start()
 
-        async with aiofiles.open(name_file, mode='w') as handle:
-            await handle.write(json.dumps(data))
+        if is_need_read:
+            async with aiofiles.open(os.path.join(TaskManager.tasks_path, f'{task_id}.json'), mode='r') as read_handle:
+                data = await read_handle.read()
+                task_data = json.loads(data)
 
-        await TaskManager.fill_queue()
-
-    @staticmethod
-    async def write_res_to_tmp(task_id, result: list):
-        name_file = os.sep.join([os.getcwd(), 'temp', 'result', f'{task_id}.json'])
-
-        async with aiofiles.open(name_file, mode='w') as handle:
-            for item in result:
-                await handle.write(json.dumps(item))
-
-    @staticmethod
-    async def run_task(task_info: dict):
-        task_type = task_info.get('type_task')
-        match task_type:
+        type_task = task_data.get('type_task')
+        result = None
+        match type_task:
             case 0:
-                hd_setting = task_info.get('settings')
-                host_discovery = HostDiscovery()
-                th = threading.Thread(target=host_discovery.scan, args=(
-                    hd_setting.get('type'),
-                    hd_setting.get('protocols'),
-                    hd_setting.get('subnets'),)
-                )
-                th.start()
-                th.join()
-                print(host_discovery.result)
-                await asyncio.wait([
-                    asyncio.create_task(TaskManager.write_res_to_tmp(task_info.get('task_id'),
-                                                                     host_discovery.result))])
+                result = await asyncio.to_thread(HostDiscoveryHandler.scan, task_data)
+                await WriteManager.write_result(task_id, result)
+
+        time_manager.stop()
+        await TaskManager.send_result(task_id, type_task, result, time_manager.exec_time, time_manager.exec_date)
 
     @staticmethod
-    async def check_queue():
-        while not TaskManager.queue.empty():
-            TaskManager.tasks.append(TaskManager.queue.get())
+    async def send_result(task_id: int, type_task, result: dict, time, date):
+        request = {
+            'type': RequestType.RESULT.value,
+            'task_id': task_id,
+            'type_task': type_task,
+            'result_info': result,
+            'start_time': date[0],
+            'end_time': date[1],
+            'exec_time': time
+        }
+        result_sender = SenderMsg()
+        try:
+            async with result_sender:
+                await result_sender.send_msg(request)
+        except Exception as e:
+            await SenderMsg.send_error('send_result', e.args)
 
-        if TaskManager.tasks:
-            await asyncio.gather(*TaskManager.tasks)
-
-        await asyncio.sleep(10)
+    # @staticmethod
+    # async def check_queue():
+    #     task_type = task.get('task_type')
+    #     match task_type:
+    #         case 0:
+    #     await asyncio.create_task(TaskManager.run_task(TaskManager.tasks.pop()))
