@@ -52,7 +52,7 @@ async def scanner_handler(reader: asyncio.StreamReader, writer: asyncio.StreamWr
                     raise Exception(f'Problem while running\n{e.args}')
     except json.decoder.JSONDecodeError:
         if request == Message.PING.value:
-            writer.write('scanner03'.encode())
+            writer.write('scanner02'.encode())
             await writer.drain()
 
 

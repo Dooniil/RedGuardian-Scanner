@@ -3,7 +3,8 @@ import asyncio
 
 
 async def main():
-    host = '10.0.0.183'  # choose_host()
+    # host = '10.0.0.183'
+    host = '192.168.50.223'  # choose_host()
     await run_server(host)
 
 
