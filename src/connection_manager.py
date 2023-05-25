@@ -15,17 +15,51 @@ from src.sender_messages import Message
 # NAME = os.environ['NAME']
 
 
-async def read_request(reader) -> str:
-    request = bytearray()
+async def read_request(reader) -> int:
+    size: bytes = await reader.read(1536)
+    return len(size)
+
+async def receive_message(reader) -> bytes:
+    data = bytearray() 
+    while True: 
+        data += await reader.read(1536) 
+        reader.feed_eof() 
+        if reader.at_eof(): 
+            return data.decode()
+
+async def readexactly(reader, bytes_count: int) -> bytes:
+    """
+    Функция приёма определённого количества байт
+    """
+    data_bytes = bytearray()
+    while len(data_bytes) < bytes_count: # Пока не получили нужное количество байт
+        part = await reader.read(bytes_count - len(data_bytes)) # Получаем оставшиеся байты
+        if not part: # Если из сокета ничего не пришло, значит его закрыли с другой стороны
+            raise IOError("Соединение потеряно")
+        data_bytes += part
+    return data_bytes
+
+async def reliable_receive(reader) -> bytes:
+    """
+    Функция приёма данных
+    Обратите внимание, что возвращает тип bytes
+    """
+    data_bytes = bytearray()
     while True:
-        request += await reader.read(1536)
-        reader.feed_eof()
-        if reader.at_eof():
-            return request.decode()
+        part_len = int.from_bytes(await readexactly(reader, 2), "big") # Определяем длину ожидаемого куска
+        if part_len == 0: # Если пришёл кусок нулевой длины, то приём окончен
+            return data_bytes
+        data_bytes += await readexactly(part_len) # Считываем сам кусок
 
 
 async def scanner_handler(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
-    request = await read_request(reader)
+    size = (await read_request(reader)).to_bytes(2, 'big')
+    if size < b'0xff0xff':
+        writer.write(size.to_bytes(1, 'big'))
+        await writer.drain()
+        request = await receive_message(reader)
+    else: 
+        request = await reliable_receive(reader)
     try:
         data = json.loads(request)
         match data.get('type'):
@@ -40,7 +74,7 @@ async def scanner_handler(reader: asyncio.StreamReader, writer: asyncio.StreamWr
             case RequestType.SAVE_TASK.value:
                 try:
                     await TaskManager.write_task(data.get('task_data'), data.get('run_after_creation'))
-                    writer.write(0)
+                    writer.write(b'0')
                     await writer.drain()
                 except Exception as e:
                     await SenderMsg.send_error('save_task', e.args)
