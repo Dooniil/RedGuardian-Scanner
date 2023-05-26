@@ -15,17 +15,17 @@ from src.sender_messages import Message
 # NAME = os.environ['NAME']
 
 
-async def read_request(reader) -> int:
-    size: bytes = await reader.read(1536)
-    return len(size)
+# async def read_request(reader) -> int:
+#     size: bytes = await reader.read(1536)
+#     return size
 
-async def receive_message(reader) -> bytes:
-    data = bytearray() 
-    while True: 
-        data += await reader.read(1536) 
-        reader.feed_eof() 
-        if reader.at_eof(): 
-            return data.decode()
+# async def receive_message(reader) -> bytes:
+#     data = bytearray() 
+#     while True: 
+#         data += await reader.read(1536) 
+#         reader.feed_eof() 
+#         if reader.at_eof(): 
+#             return data.decode()
 
 async def readexactly(reader, bytes_count: int) -> bytes:
     """
@@ -49,27 +49,27 @@ async def reliable_receive(reader) -> bytes:
         part_len = int.from_bytes(await readexactly(reader, 2), "big") # Определяем длину ожидаемого куска
         if part_len == 0: # Если пришёл кусок нулевой длины, то приём окончен
             return data_bytes
-        data_bytes += await readexactly(part_len) # Считываем сам кусок
+        data_bytes += await readexactly(reader, part_len) # Считываем сам кусок
 
 
 async def scanner_handler(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
-    size = (await read_request(reader)).to_bytes(2, 'big')
-    if size < b'0xff0xff':
-        writer.write(size.to_bytes(1, 'big'))
-        await writer.drain()
-        request = await receive_message(reader)
-    else: 
-        request = await reliable_receive(reader)
+    # size = await read_request(reader)
+    # if size < b'\xff\xff':
+    #     writer.write(size)
+    #     await writer.drain()
+    #     request = await receive_message(reader)
+    # else: 
+    request = await reliable_receive(reader)
     try:
         data = json.loads(request)
         match data.get('type'):
-
             case RequestType.KEY.value:
                 try:
                     encryption_manager.private_key = data.get('key')
                     print(encryption_manager.private_key)
                 except Exception as e:
-                    await SenderMsg.send_error('write_key', e.args)
+                    raise Exception(f'Key receiving problem\n{e.args}')
+                    # await SenderMsg.send_error('write_key', e.args)
 
             case RequestType.SAVE_TASK.value:
                 try:
@@ -77,16 +77,17 @@ async def scanner_handler(reader: asyncio.StreamReader, writer: asyncio.StreamWr
                     writer.write(b'0')
                     await writer.drain()
                 except Exception as e:
-                    await SenderMsg.send_error('save_task', e.args)
+                    # await SenderMsg.send_error('save_task', e.args)
                     raise Exception(f'Problem while writing to tmp\n{e.args}')
 
             case RequestType.RUN_TASK.value:
                 try:
                     await TaskManager.run_task(data.get('task_id'))
                 except Exception as e:
-                    await SenderMsg.send_error('run_task', e.args)
+                    # await SenderMsg.send_error('run_task', e.args)
                     raise Exception(f'Problem while running\n{e.args}')
     except json.decoder.JSONDecodeError:
+        request = bytes(request).decode()
         if request == Message.PING.value:
             writer.write('scanner03'.encode())
             await writer.drain()

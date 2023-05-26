@@ -4,10 +4,11 @@ import os
 import aiofiles
 import aiofiles.os
 import asyncio
-from src.handlers.host_discovery_handler import HostDiscoveryHandler
-from src.write_manager import WriteManager
-from src.sender_messages import SenderMsg
 from request_type import RequestType
+from src.handlers.host_discovery_handler import HostDiscoveryHandler
+from src.handlers.vulnerability_handler import VulnerabilityHandler
+from src.sender_messages import SenderMsg
+from src.write_manager import WriteManager
 from src.time_info_manager import TimeInfoManager
 
 
@@ -53,7 +54,11 @@ class TaskManager:
         match type_task:
             case 0:
                 result = await asyncio.to_thread(HostDiscoveryHandler.scan, task_data)
-                await WriteManager.write_result(task_id, result)
+            case 1:
+                result = await asyncio.to_thread(VulnerabilityHandler.scan, task_data)
+                
+        write_task = asyncio.create_task(WriteManager.write_result(task_id, result))
+        await write_task()
 
         time_manager.stop()
         await TaskManager.send_result(task_id, type_task, result, time_manager.exec_time, time_manager.exec_date)
@@ -74,11 +79,5 @@ class TaskManager:
             async with result_sender:
                 await result_sender.send_msg(request)
         except Exception as e:
-            await SenderMsg.send_error('send_result', e.args)
-
-    # @staticmethod
-    # async def check_queue():
-    #     task_type = task.get('task_type')
-    #     match task_type:
-    #         case 0:
-    #     await asyncio.create_task(TaskManager.run_task(TaskManager.tasks.pop()))
+            raise Exception('Error while sending result')
+        
