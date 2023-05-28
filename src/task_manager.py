@@ -26,18 +26,14 @@ class TaskManager:
     #                 await TaskManager.tasks.put(task)
 
     @staticmethod
-    async def write_task(data: dict, run_after_writing: bool):
+    async def write_task(data: dict):
         id_task = data.get('task_id')
         name_file = os.sep.join([os.getcwd(), 'tasks', f'{id_task}.json'])
 
         async with aiofiles.open(name_file, mode='w+') as write_handle:
             await write_handle.write(json.dumps(data))
 
-        if run_after_writing:
-            execute_task = asyncio.create_task(TaskManager.run_task(id_task, data, False))
-            await execute_task
-            # TaskManager.execute_tasks.add(execute_task)
-            # execute_task.add_done_callback(TaskManager.execute_tasks.discard)
+        return id_task, data
 
     @staticmethod
     async def run_task(task_id: int, task_data: dict = None, is_need_read: bool = True):
@@ -55,10 +51,10 @@ class TaskManager:
             case 0:
                 result = await asyncio.to_thread(HostDiscoveryHandler.scan, task_data)
             case 1:
-                result = await asyncio.to_thread(VulnerabilityHandler.scan, task_data)
+                result: dict = await asyncio.to_thread(VulnerabilityHandler.scan, task_data)
                 
         write_task = asyncio.create_task(WriteManager.write_result(task_id, result))
-        await write_task()
+        await write_task
 
         time_manager.stop()
         await TaskManager.send_result(task_id, type_task, result, time_manager.exec_time, time_manager.exec_date)

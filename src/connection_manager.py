@@ -15,18 +15,6 @@ from src.sender_messages import Message
 # NAME = os.environ['NAME']
 
 
-# async def read_request(reader) -> int:
-#     size: bytes = await reader.read(1536)
-#     return size
-
-# async def receive_message(reader) -> bytes:
-#     data = bytearray() 
-#     while True: 
-#         data += await reader.read(1536) 
-#         reader.feed_eof() 
-#         if reader.at_eof(): 
-#             return data.decode()
-
 async def readexactly(reader, bytes_count: int) -> bytes:
     """
     Функция приёма определённого количества байт
@@ -53,12 +41,6 @@ async def reliable_receive(reader) -> bytes:
 
 
 async def scanner_handler(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
-    # size = await read_request(reader)
-    # if size < b'\xff\xff':
-    #     writer.write(size)
-    #     await writer.drain()
-    #     request = await receive_message(reader)
-    # else: 
     request = await reliable_receive(reader)
     try:
         data = json.loads(request)
@@ -73,9 +55,12 @@ async def scanner_handler(reader: asyncio.StreamReader, writer: asyncio.StreamWr
 
             case RequestType.SAVE_TASK.value:
                 try:
-                    await TaskManager.write_task(data.get('task_data'), data.get('run_after_creation'))
+                    id_task, data = await TaskManager.write_task(data.get('task_data'))
                     writer.write(b'0')
                     await writer.drain()
+                    if data.get('run_after_creation'):
+                        execute_task = asyncio.create_task(TaskManager.run_task(id_task, data, False))
+                        await execute_task
                 except Exception as e:
                     # await SenderMsg.send_error('save_task', e.args)
                     raise Exception(f'Problem while writing to tmp\n{e.args}')
