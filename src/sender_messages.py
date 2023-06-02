@@ -2,8 +2,7 @@ import asyncio
 import json
 from enum import Enum
 
-from request_type import RequestType
-from ssl_manager import ssl_manager
+from src.ssl_manager import ssl_manager
 
 
 class Message(str, Enum):
