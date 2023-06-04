@@ -55,10 +55,11 @@ async def scanner_handler(reader: asyncio.StreamReader, writer: asyncio.StreamWr
 
             case RequestType.SAVE_TASK.value:
                 try:
+                    run_after_creation = data.get('run_after_creation')
                     id_task, data = await TaskManager.write_task(data.get('task_data'))
                     writer.write(b'0')
                     await writer.drain()
-                    if data.get('run_after_creation'):
+                    if run_after_creation:
                         execute_task = asyncio.create_task(TaskManager.run_task(id_task, data, False))
                         await execute_task
                 except Exception as e:

@@ -10,7 +10,7 @@ def exec_command(target, login, password, definitions) -> list:
     result_list = list()
 
     for definition in definitions:
-        result = dict(id=None, cpe=None, found=False)
+        result = dict(id=None, cpe=None, found=False, cpe_product=list())
         scripts = definition['scripts']
         result.update(id=definition['id'])
 
@@ -43,6 +43,8 @@ def exec_command(target, login, password, definitions) -> list:
                                     break
                                 if 'windows' in os_test_dict.get('cpe') or 'alt' in os_test_dict.get('cpe'):
                                     cpe = os_test_dict.get('cpe')
+                                else:
+                                    result['cpe_product'].append(os_test_dict.get('cpe'))
                                 is_os_set = True
                             else:
                                 is_os_set = False
@@ -53,6 +55,8 @@ def exec_command(target, login, password, definitions) -> list:
                                     break
                                 if 'windows' in os_test_dict.get('cpe') or 'alt' in os_test_dict.get('cpe'):
                                     cpe = os_test_dict.get('cpe')
+                                else:
+                                    result['cpe_product'].append(os_test_dict.get('cpe'))
                                 is_os_set = True
                             else:
                                 is_os_set = False
@@ -63,6 +67,8 @@ def exec_command(target, login, password, definitions) -> list:
                                     break
                                 if 'windows' in os_test_dict.get('cpe') or 'alt' in os_test_dict.get('cpe'):
                                     cpe = os_test_dict.get('cpe')
+                                else:
+                                    result['cpe_product'].append(os_test_dict.get('cpe'))
                                 is_os_set = True
                             else:
                                 is_os_set = False
@@ -73,6 +79,8 @@ def exec_command(target, login, password, definitions) -> list:
                                     break
                                 if 'windows' in os_test_dict.get('cpe') or 'alt' in os_test_dict.get('cpe'):
                                     cpe = os_test_dict.get('cpe')
+                                else:
+                                    result['cpe_product'].append(os_test_dict.get('cpe'))
                                 is_os_set = True
                             else:
                                 is_os_set = False

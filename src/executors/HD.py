@@ -3,7 +3,7 @@ import nmap3
 
 class HostDiscovery:
     @staticmethod
-    def scan(hd_type: int, transports: list[int], address_list: list):
+    def  scan(hd_type: int, transports: list[int], address_list: list):
         cmd_args = HostDiscovery.get_cmd(hd_type, transports)
         addresses = ' '.join(address_list)
 
