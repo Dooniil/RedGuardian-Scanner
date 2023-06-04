@@ -1,8 +1,8 @@
 import asyncio
 import json
-from request_type import RequestType
+from src.request_type import RequestType
 from src.encryption_manager import encryption_manager
-from ssl_manager import ssl_manager
+from src.ssl_manager import ssl_manager
 from src.task_manager import TaskManager
 from src.sender_messages import SenderMsg
 from src.sender_messages import Message

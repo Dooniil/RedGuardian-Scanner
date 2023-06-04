@@ -4,7 +4,7 @@ import os
 import aiofiles
 import aiofiles.os
 import asyncio
-from request_type import RequestType
+from src.request_type import RequestType
 from src.handlers.host_discovery_handler import HostDiscoveryHandler
 from src.handlers.vulnerability_handler import VulnerabilityHandler
 from src.sender_messages import SenderMsg
